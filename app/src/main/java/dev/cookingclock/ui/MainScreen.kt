@@ -1,5 +1,6 @@
 package dev.cookingclock.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -98,15 +98,23 @@ fun MainScreen(state: AppState, onOpenSettings: () -> Unit) {
                 title = { Text("Cooking Clock") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 actions = {
-                    IconButton(onClick = { ClockController.setKeepScreenOn(context, !state.keepScreenOn) }) {
+                    IconButton(onClick = {
+                        val on = !state.keepScreenOn
+                        ClockController.setKeepScreenOn(context, on)
+                        Toast.makeText(
+                            context,
+                            if (on) "Screen stays on while the app is open" else "Screen turns off normally",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }) {
                         Icon(
                             painterResource(if (state.keepScreenOn) R.drawable.ic_screen_on else R.drawable.ic_screen_off),
                             contentDescription = if (state.keepScreenOn) "Keep screen on: enabled" else "Keep screen on: disabled",
                             tint = if (state.keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { dialog = MainDialog.ClearAll }, enabled = state.clocks.isNotEmpty()) {
-                        Text("Clear all")
+                    IconButton(onClick = { dialog = MainDialog.ClearAll }, enabled = state.clocks.isNotEmpty()) {
+                        Icon(Icons.Default.Delete, contentDescription = "Clear all")
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")

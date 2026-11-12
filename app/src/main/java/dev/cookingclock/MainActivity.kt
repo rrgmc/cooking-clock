@@ -20,9 +20,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cookingclock.data.ClockController
 import dev.cookingclock.data.ClockState
 import dev.cookingclock.data.Repository
+import dev.cookingclock.ui.AlarmProfilesScreen
 import dev.cookingclock.ui.MainScreen
 import dev.cookingclock.ui.SettingsScreen
 import dev.cookingclock.ui.theme.CookingClockTheme
+
+/** The screens of [MainActivity]. There is no navigation library. */
+private enum class Screen { MAIN, SETTINGS, ALARM_PROFILES }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +42,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CookingClockTheme {
                 val state by Repository.state.collectAsStateWithLifecycle()
-                var showSettings by rememberSaveable { mutableStateOf(false) }
+                var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
 
                 LaunchedEffect(state.keepScreenOn) {
                     if (state.keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -49,11 +53,19 @@ class MainActivity : ComponentActivity() {
                     if (!ringing) showOverLockScreen(false)
                 }
 
-                if (showSettings) {
-                    BackHandler { showSettings = false }
-                    SettingsScreen(state = state, onBack = { showSettings = false })
-                } else {
-                    MainScreen(state = state, onOpenSettings = { showSettings = true })
+                when (screen) {
+                    Screen.MAIN -> MainScreen(state = state, onOpenSettings = { screen = Screen.SETTINGS })
+                    Screen.SETTINGS -> {
+                        BackHandler { screen = Screen.MAIN }
+                        SettingsScreen(
+                            onBack = { screen = Screen.MAIN },
+                            onOpenAlarmProfiles = { screen = Screen.ALARM_PROFILES },
+                        )
+                    }
+                    Screen.ALARM_PROFILES -> {
+                        BackHandler { screen = Screen.SETTINGS }
+                        AlarmProfilesScreen(state = state, onBack = { screen = Screen.SETTINGS })
+                    }
                 }
             }
         }
