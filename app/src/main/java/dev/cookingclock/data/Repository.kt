@@ -24,10 +24,7 @@ object Repository {
         val json = prefs.getString(KEY_STATE, null)
         var loaded = if (json != null) runCatching { decode(JSONObject(json)) }.getOrNull() else null
         if (loaded == null) {
-            loaded = AppState(
-                names = listOf("Rice", "Pasta", "Eggs", "Oven", "Beans", "Cake"),
-                profiles = listOf(AppState.defaultProfile()),
-            )
+            loaded = AppState(profiles = listOf(AppState.defaultProfile()))
         }
         if (loaded.profiles.none { it.id == AppState.DEFAULT_PROFILE_ID }) {
             loaded = loaded.copy(profiles = listOf(AppState.defaultProfile()) + loaded.profiles)

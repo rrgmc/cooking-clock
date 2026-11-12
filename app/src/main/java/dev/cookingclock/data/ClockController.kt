@@ -79,26 +79,21 @@ object ClockController {
         s.mapClock(id) { it.copy(state = ClockState.IDLE, remainingMs = it.durationMs, endAt = 0) }
     }
 
-    /** Add [minutes] (may be negative) to the current value of a clock. */
-    fun adjust(context: Context, id: Int, minutes: Int) = change(context) { s ->
+    /**
+     * Set the current value of a clock to [ms]. A running clock keeps running with the new
+     * value. A ringing or finished clock is silenced and paused at the new value.
+     */
+    fun setTime(context: Context, id: Int, ms: Long) = change(context) { s ->
         val t = now()
-        val delta = minutes * MINUTE
+        val v = ms.coerceAtLeast(0)
         s.mapClock(id) { c ->
             when (c.state) {
-                ClockState.RUNNING -> {
-                    val remaining = (c.remainingAt(t) + delta).coerceAtLeast(0)
-                    c.copy(endAt = t + remaining)
-                }
-                ClockState.IDLE -> {
-                    val v = (c.remainingMs + delta).coerceAtLeast(0)
-                    c.copy(remainingMs = v, durationMs = v)
-                }
-                ClockState.PAUSED -> c.copy(remainingMs = (c.remainingMs + delta).coerceAtLeast(0))
-                // Adding time to a ringing clock acts as a snooze.
-                ClockState.RINGING ->
-                    if (delta > 0) c.copy(state = ClockState.RUNNING, endAt = t + delta) else c
-                ClockState.FINISHED ->
-                    if (delta > 0) c.copy(state = ClockState.PAUSED, remainingMs = delta) else c
+                ClockState.RUNNING ->
+                    if (v > 0) c.copy(endAt = t + v) else c.copy(state = ClockState.PAUSED, remainingMs = 0, endAt = 0)
+                ClockState.IDLE -> c.copy(remainingMs = v, durationMs = v)
+                ClockState.PAUSED -> c.copy(remainingMs = v)
+                ClockState.RINGING, ClockState.FINISHED ->
+                    if (v > 0) c.copy(state = ClockState.PAUSED, remainingMs = v, endAt = 0) else c
             }
         }
     }

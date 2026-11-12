@@ -37,8 +37,8 @@ The Android SDK is in `%LOCALAPPDATA%\Android\Sdk`; `local.properties` (not comm
 - `service/ClockViews` builds the RemoteViews rows shared by the notification and the widget.
   Running clocks use a count-down `Chronometer`, so the system updates them without app wake-ups.
 - `widget/ClockWidgetProvider` is a plain RemoteViews widget with no collection adapter.
-- `ui/` holds the Compose screens. Navigation between the main and settings screens is a
-  boolean in `MainActivity`; there is no navigation library.
+- `ui/` holds the Compose screens. Navigation between the main, settings and alarm profiles
+  screens is a `Screen` enum in `MainActivity`; there is no navigation library.
 
 Only `material-icons-core` is a dependency. Icons it lacks (pause, stop, light bulb) are vector
 drawables in `res/drawable`.

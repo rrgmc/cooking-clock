@@ -1,5 +1,6 @@
 package dev.cookingclock.ui
 
+import android.widget.NumberPicker
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,18 +44,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.sp
 import dev.cookingclock.data.AlarmProfile
 import dev.cookingclock.data.AppState
 import dev.cookingclock.data.CLOCK_COLORS
 import dev.cookingclock.data.ClockController
 import dev.cookingclock.data.CookingClock
-import dev.cookingclock.data.formatDuration
 
 @Composable
 fun ConfirmDialog(
@@ -147,34 +149,75 @@ fun NameDialog(
     }
 }
 
-/** Changes the current value of a clock in steps of 1 or 5 minutes. */
+private val PRESET_MINUTES = listOf(1, 5, 10, 15, 20, 30)
+
+/**
+ * Sets the current value of a clock with hour, minute and second wheels, or with a preset.
+ * Nothing changes until OK is pressed.
+ */
 @Composable
 fun TimeDialog(clock: CookingClock, now: Long, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val initial = remember { (clock.remainingAt(now) + 999) / 1000 }
+    var hours by remember { mutableIntStateOf((initial / 3600).toInt().coerceAtMost(23)) }
+    var minutes by remember { mutableIntStateOf(((initial % 3600) / 60).toInt()) }
+    var seconds by remember { mutableIntStateOf((initial % 60).toInt()) }
+    val totalMs = ((hours * 3600L) + (minutes * 60L) + seconds) * 1000L
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(clock.name) },
         text = {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    formatDuration(clock.remainingAt(now)),
-                    fontSize = 48.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.size(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (m in listOf(-5, -1, 1, 5)) {
-                        FilledTonalButton(
-                            onClick = { ClockController.adjust(context, clock.id, m) },
-                            modifier = Modifier.weight(1f),
-                        ) { Text(if (m > 0) "+$m" else "$m") }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WheelPicker(hours, 23, "Hours") { hours = it }
+                    Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    WheelPicker(minutes, 59, "Minutes") { minutes = it }
+                    Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    WheelPicker(seconds, 59, "Seconds") { seconds = it }
+                }
+                Spacer(Modifier.size(12.dp))
+                PRESET_MINUTES.chunked(3).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (m in row) {
+                            FilledTonalButton(
+                                onClick = { hours = 0; minutes = m; seconds = 0 },
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                            ) { Text("$m min", maxLines = 1, softWrap = false) }
+                        }
                     }
                 }
-                Text("minutes", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 4.dp))
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = {
+            TextButton(
+                onClick = { ClockController.setTime(context, clock.id, totalMs); onDismiss() },
+                enabled = totalMs > 0,
+            ) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/** The platform [NumberPicker] wheel, showing two-digit values from 0 to [max]. */
+@Composable
+private fun WheelPicker(value: Int, max: Int, label: String, onChange: (Int) -> Unit) {
+    AndroidView(
+        factory = { ctx ->
+            NumberPicker(ctx).apply {
+                minValue = 0
+                maxValue = max
+                // Displayed values instead of a formatter: a formatter skips the first draw.
+                displayedValues = Array(max + 1) { "%02d".format(it) }
+                wrapSelectorWheel = true
+                descendantFocusability = NumberPicker.FOCUS_BLOCK_DESCENDANTS
+                contentDescription = label
+                setOnValueChangedListener { _, _, new -> onChange(new) }
+            }
+        },
+        update = { if (it.value != value) it.value = value },
+        modifier = Modifier.padding(horizontal = 8.dp),
     )
 }
 
