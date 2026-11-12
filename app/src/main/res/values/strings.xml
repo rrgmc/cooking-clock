@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cooking Clock</string>
+    <string name="times_up">Time\'s up!</string>
+    <string name="paused_value">%1$s (paused)</string>
+    <string name="stop">Stop</string>
+    <string name="channel_running">Running clocks</string>
+    <string name="channel_alarm">Alarms</string>
+    <string name="no_active_clocks">No active clocks</string>
+    <string name="widget_description">Shows all active cooking clocks</string>
+    <plurals name="clocks_running">
+        <item quantity="one">%d clock running</item>
+        <item quantity="other">%d clocks running</item>
+    </plurals>
+</resources>
