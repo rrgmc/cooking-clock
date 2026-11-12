@@ -7,6 +7,10 @@
     <string name="channel_running">Running clocks</string>
     <string name="channel_alarm">Alarms</string>
     <string name="no_active_clocks">No active clocks</string>
+    <string name="preview_name_1">Rice</string>
+    <string name="preview_time_1">12:30</string>
+    <string name="preview_name_2">Pasta</string>
+    <string name="preview_time_2">08:05</string>
     <string name="widget_description">Shows all active cooking clocks</string>
     <plurals name="clocks_running">
         <item quantity="one">%d clock running</item>
