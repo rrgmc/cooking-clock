@@ -36,17 +36,19 @@ object ClockController {
     private fun AppState.mapClock(id: Int, f: (CookingClock) -> CookingClock) =
         copy(clocks = clocks.map { if (it.id == id) f(it) else it })
 
-    fun addClock(context: Context, name: String, minutes: Int = 5) = change(context) { s ->
+    /** Add a clock. With [saveName], the name is also added to the saved names. */
+    fun addClock(context: Context, name: String, saveName: Boolean = true, minutes: Int = 5) = change(context) { s ->
         val ms = minutes * MINUTE
         s.copy(
             nextId = s.nextId + 1,
             clocks = s.clocks + CookingClock(s.nextId, name.trim(), ms, ms, ClockState.IDLE),
-            names = rememberName(s.names, name),
+            names = if (saveName) rememberName(s.names, name) else s.names,
         )
     }
 
-    fun rename(context: Context, id: Int, name: String) = change(context) { s ->
-        s.mapClock(id) { it.copy(name = name.trim()) }.copy(names = rememberName(s.names, name))
+    fun rename(context: Context, id: Int, name: String, saveName: Boolean = true) = change(context) { s ->
+        s.mapClock(id) { it.copy(name = name.trim()) }
+            .copy(names = if (saveName) rememberName(s.names, name) else s.names)
     }
 
     private fun rememberName(names: List<String>, name: String): List<String> {
@@ -106,6 +108,13 @@ object ClockController {
 
     fun delete(context: Context, id: Int) =
         change(context) { s -> s.copy(clocks = s.clocks.filterNot { it.id == id }) }
+
+    fun pauseAll(context: Context) = change(context) { s ->
+        val t = now()
+        s.copy(clocks = s.clocks.map {
+            if (it.state == ClockState.RUNNING) it.copy(state = ClockState.PAUSED, remainingMs = it.remainingAt(t)) else it
+        })
+    }
 
     fun clearAll(context: Context) = change(context) { s -> s.copy(clocks = emptyList()) }
 

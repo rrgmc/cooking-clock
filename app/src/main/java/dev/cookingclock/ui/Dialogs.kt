@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -76,19 +79,20 @@ fun ConfirmDialog(
 }
 
 /**
- * Lets the user type a name or pick one from the saved list. Typed names are added to the
- * list by [ClockController]. Saved names can be deleted here, after confirmation.
+ * Lets the user type a name or pick one from the saved list. [onPick] receives the name and
+ * whether to add it to the saved names. Saved names can be deleted here, after confirmation.
  */
 @Composable
 fun NameDialog(
     title: String,
     initial: String,
     names: List<String>,
-    onPick: (String) -> Unit,
+    onPick: (name: String, save: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
     var text by remember { mutableStateOf(initial) }
+    var save by remember { mutableStateOf(true) }
     var toDelete by remember { mutableStateOf<String?>(null) }
     val filtered = if (text.isBlank() || text == initial) names
     else names.filter { it.contains(text.trim(), ignoreCase = true) }
@@ -105,14 +109,20 @@ fun NameDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { if (text.isNotBlank()) onPick(text.trim()) }),
+                    keyboardActions = KeyboardActions(onDone = { if (text.isNotBlank()) onPick(text.trim(), save) }),
                 )
-                Spacer(Modifier.size(8.dp))
+                Row(
+                    Modifier.fillMaxWidth().toggleable(save, role = Role.Checkbox) { save = it },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = save, onCheckedChange = null, modifier = Modifier.padding(8.dp))
+                    Text("Add to saved names")
+                }
                 Text("Saved names", style = MaterialTheme.typography.labelMedium)
                 LazyColumn(Modifier.heightIn(max = 280.dp)) {
                     items(filtered, key = { it }) { name ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { onPick(name) },
+                            Modifier.fillMaxWidth().clickable { onPick(name, false) },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(name, Modifier.weight(1f).padding(vertical = 12.dp, horizontal = 4.dp))
@@ -125,7 +135,7 @@ fun NameDialog(
                 }
                 if (filtered.isEmpty()) {
                     Text(
-                        if (names.isEmpty()) "No saved names." else "No matching names. The typed name will be saved.",
+                        if (names.isEmpty()) "No saved names." else "No matching names.",
                         Modifier.padding(vertical = 8.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -133,7 +143,7 @@ fun NameDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onPick(text.trim()) }, enabled = text.isNotBlank()) { Text("OK") }
+            TextButton(onClick = { onPick(text.trim(), save) }, enabled = text.isNotBlank()) { Text("OK") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

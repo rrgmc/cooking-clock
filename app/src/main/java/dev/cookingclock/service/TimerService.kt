@@ -104,6 +104,15 @@ class TimerService : LifecycleService() {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
+    /**
+     * Since Android 14 the user can swipe away a foreground service notification even when it
+     * is ongoing. Dismissing it restarts this service, which posts it again at once.
+     */
+    private fun repostIntent(): PendingIntent = PendingIntent.getForegroundService(
+        this, 0, Intent(this, TimerService::class.java),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
     private fun buildOngoing(state: AppState): Notification {
         val now = System.currentTimeMillis()
         val clocks = ClockViews.activeSorted(state.clocks, now)
@@ -145,6 +154,7 @@ class TimerService : LifecycleService() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(openAppIntent(false))
+            .setDeleteIntent(repostIntent())
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(collapsed)
             .setCustomBigContentView(expanded)

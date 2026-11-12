@@ -68,6 +68,7 @@ private sealed interface MainDialog {
     data class Rename(val id: Int) : MainDialog
     data class Time(val id: Int) : MainDialog
     data class Options(val id: Int) : MainDialog
+    data class Reset(val id: Int) : MainDialog
     data class Delete(val id: Int) : MainDialog
     data object ClearAll : MainDialog
 }
@@ -113,8 +114,15 @@ fun MainScreen(state: AppState, onOpenSettings: () -> Unit) {
                             tint = if (state.keepScreenOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    IconButton(onClick = { dialog = MainDialog.ClearAll }, enabled = state.clocks.isNotEmpty()) {
-                        Icon(Icons.Default.Delete, contentDescription = "Clear all")
+                    // Pause all while any clock runs; otherwise delete all.
+                    if (state.clocks.any { it.state == ClockState.RUNNING }) {
+                        IconButton(onClick = { ClockController.pauseAll(context) }) {
+                            Icon(painterResource(R.drawable.ic_pause), contentDescription = "Pause all")
+                        }
+                    } else {
+                        IconButton(onClick = { dialog = MainDialog.ClearAll }, enabled = state.clocks.isNotEmpty()) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete all")
+                        }
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -155,7 +163,7 @@ fun MainScreen(state: AppState, onOpenSettings: () -> Unit) {
                             onName = { dialog = MainDialog.Rename(clock.id) },
                             onTime = { dialog = MainDialog.Time(clock.id) },
                             onToggle = { ClockController.toggle(context, clock.id) },
-                            onReset = { ClockController.reset(context, clock.id) },
+                            onReset = { dialog = MainDialog.Reset(clock.id) },
                             onDelete = { dialog = MainDialog.Delete(clock.id) },
                             onOptions = { dialog = MainDialog.Options(clock.id) },
                         )
@@ -173,7 +181,7 @@ fun MainScreen(state: AppState, onOpenSettings: () -> Unit) {
             title = "New clock",
             initial = "",
             names = state.names,
-            onPick = { name -> ClockController.addClock(context, name); close() },
+            onPick = { name, save -> ClockController.addClock(context, name, save); close() },
             onDismiss = close,
         )
         is MainDialog.Rename -> clock(d.id)?.let { c ->
@@ -181,12 +189,21 @@ fun MainScreen(state: AppState, onOpenSettings: () -> Unit) {
                 title = "Clock name",
                 initial = c.name,
                 names = state.names,
-                onPick = { name -> ClockController.rename(context, c.id, name); close() },
+                onPick = { name, save -> ClockController.rename(context, c.id, name, save); close() },
                 onDismiss = close,
             )
         } ?: close()
         is MainDialog.Time -> clock(d.id)?.let { c -> TimeDialog(c, now, onDismiss = close) } ?: close()
         is MainDialog.Options -> clock(d.id)?.let { c -> ClockOptionsDialog(c, state.profiles, onDismiss = close) } ?: close()
+        is MainDialog.Reset -> clock(d.id)?.let { c ->
+            ConfirmDialog(
+                title = "Reset clock?",
+                text = "The clock \"${c.name}\" will be reset to ${formatDuration(c.durationMs)}.",
+                confirmLabel = "Reset",
+                onConfirm = { ClockController.reset(context, c.id); close() },
+                onDismiss = close,
+            )
+        } ?: close()
         is MainDialog.Delete -> clock(d.id)?.let { c ->
             ConfirmDialog(
                 title = "Delete clock?",
@@ -197,9 +214,9 @@ fun MainScreen(state: AppState, onOpenSettings: () -> Unit) {
             )
         } ?: close()
         MainDialog.ClearAll -> ConfirmDialog(
-            title = "Clear all clocks?",
+            title = "Delete all clocks?",
             text = "All ${state.clocks.size} clocks will be deleted.",
-            confirmLabel = "Clear all",
+            confirmLabel = "Delete all",
             onConfirm = { ClockController.clearAll(context); close() },
             onDismiss = close,
         )
@@ -246,7 +263,7 @@ private fun ClockRow(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = container, contentColor = Color(0xFF201A17)),
     ) {
-        Row(Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 clock.name,
                 modifier = Modifier.weight(1f).clickable(onClick = onName).padding(vertical = 12.dp),

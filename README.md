@@ -7,13 +7,13 @@ The requirements are in [docs/PROMPT.md](docs/PROMPT.md).
 
 - Several countdown clocks, one per row: name, time, and a start, pause or stop button.
 - Tap the time to set it with hour, minute and second wheels, or with a 1 to 30 minute preset.
-- Tap the name to type a new name or pick a saved one. Saved names can be deleted.
-- The menu on each row resets or deletes the clock, and sets a background color and an alarm profile.
+- Tap the name to type a new name or pick a saved one. A checkbox decides whether a typed name is saved. Saved names can be deleted.
+- The menu on each row resets or deletes the clock (both ask first), and sets a background color and an alarm profile.
 - Alarm profiles (under Settings) choose a sound and whether to vibrate. A default profile always exists.
 - Exact alarms fire even when the app is closed or the phone is idle.
-- An ongoing notification lists every active clock. Rows get smaller as clocks are added.
+- An ongoing notification lists every active clock. Rows get smaller as clocks are added. If it is swiped away while a clock runs, it comes back.
 - A home screen widget lists the active clocks.
-- The delete button in the top bar clears all clocks. It and every other delete ask for confirmation.
+- The top bar button pauses all clocks while any is running. Otherwise it deletes all clocks, after confirmation.
 - The light bulb button keeps the screen on, and a short message confirms the change.
 
 ## Build
