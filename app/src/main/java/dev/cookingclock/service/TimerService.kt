@@ -177,7 +177,7 @@ class TimerService : LifecycleService() {
         const val CHANNEL_ALARM = "alarm"
         private const val ONGOING_NOTIFICATION_ID = 1
         private const val ALARM_NOTIFICATION_ID = 2
-        private const val COLLAPSED_MAX = 3
+        private const val COLLAPSED_MAX = 2
 
         fun start(context: Context) {
             try {
