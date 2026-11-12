@@ -24,3 +24,19 @@ Requirements: JDK 17 or later and the Android SDK (platform 36).
 ```
 
 The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+## CI and releases
+
+- Every pull request to `master` and every push to `master` runs lint and unit tests, and builds a debug APK.
+- Pushing a version tag such as `v1.2.3` builds a signed release APK and publishes it as a GitHub release.
+  The version name is taken from the tag (`1.2.3`). The version code is `major * 10000 + minor * 100 + patch`.
+
+The release workflow needs two repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `RELEASE_KEYSTORE_BASE64` | The release keystore (`.jks`), base64 encoded |
+| `RELEASE_KEYSTORE_PASSWORD` | The keystore password, which is also the key password |
+
+To build a signed release APK locally, set `RELEASE_KEYSTORE_FILE`, `RELEASE_KEYSTORE_PASSWORD` and
+`RELEASE_KEY_ALIAS`, then run `./gradlew assembleRelease -PappVersion=1.2.3`.
